@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Render K9 Deep Black Edition</title>
+    <style>
+        body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+        canvas { display: block; width: 2400px; height: 1800px; }
+    </style>
+</head>
+<body>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const width = 2400;
+const height = 1800;
+
+const scene = new THREE.Scene();
+
+// Ceiling spot
+const yCeiling = 1.35;
+const tCeiling = yCeiling / 0.66694872;
+const ceilX = -0.42907664 * tCeiling; // -0.8685m
+const ceilZ = 0.60915732 * tCeiling;  //  1.2330m
+
+// Projector hangs 24cm down
+const projX = ceilX;
+const projY = yCeiling - 0.24;
+const projZ = ceilZ;
+
+// Screen center on the wall:
+const screenX = -0.83;
+const screenY = -0.02;
+const screenZ = -2.13;
+
+// Camera setup at (0, 0, 0)
+const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 20);
+camera.position.set(0, 0, 0);
+camera.lookAt(projX, projY + 0.08, projZ);
+camera.updateMatrixWorld();
+
+// Clean, balanced studio lighting for deep matte black
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambientLight);
+
+// Key directional light in front of lens
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+keyLight.position.set(projX + 0.6, projY + 0.6, projZ - 1.8);
+keyLight.target.position.set(projX, projY, projZ);
+scene.add(keyLight);
+scene.add(keyLight.target);
+
+// Soft fill light
+const fillLight = new THREE.DirectionalLight(0xddeeff, 0.3);
+fillLight.position.set(projX - 1.2, projY + 0.3, projZ - 0.8);
+fillLight.target.position.set(projX, projY, projZ);
+scene.add(fillLight);
+scene.add(fillLight.target);
+
+// Subtle upward bounce to define bottom edge
+const bottomLight = new THREE.DirectionalLight(0xffeedd, 0.4);
+bottomLight.position.set(projX, projY - 2.0, projZ - 0.5);
+bottomLight.target.position.set(projX, projY, projZ);
+scene.add(bottomLight);
+scene.add(bottomLight.target);
+
+// Bracket light to show cantilever bracket lines
+const bracketLight = new THREE.DirectionalLight(0xffffff, 0.8);
+bracketLight.position.set(ceilX - 0.5, yCeiling + 0.4, ceilZ - 1.0);
+bracketLight.target.position.set(ceilX, yCeiling - 0.1, ceilZ + 0.05);
+scene.add(bracketLight);
+scene.add(bracketLight.target);
+
+// Rim light from rear-top
+const rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
+rimLight.position.set(projX + 0.2, yCeiling + 0.6, projZ + 1.2);
+rimLight.target.position.set(projX, projY, projZ);
+scene.add(rimLight);
+scene.add(rimLight.target);
+
+// Cantilever Bracket in Sleek Matte Anodized Black
+const bracketGroup = new THREE.Group();
+
+const blackAlumMat = new THREE.MeshStandardMaterial({
+    color: 0x141416, // Matte black anodized aluminum
+    metalness: 0.5,
+    roughness: 0.35
+});
+
+const darkSteelMat = new THREE.MeshStandardMaterial({
+    color: 0x101012, // Jet black
+    metalness: 0.6,
+    roughness: 0.3
+});
+
+const screwMat = new THREE.MeshStandardMaterial({
+    color: 0x505058, // Dark stainless steel bolts
+    metalness: 0.85,
+    roughness: 0.2
+});
+
+const aimHoriz = new THREE.Vector2(screenX - ceilX, screenZ - ceilZ).normalize();
+const armAngle = Math.atan2(aimHoriz.x, aimHoriz.y);
+
+// 1. Ceiling Base Plate
+const plateGeo = new THREE.BoxGeometry(0.12, 0.012, 0.16);
+const plate = new THREE.Mesh(plateGeo, blackAlumMat);
+plate.position.set(ceilX, yCeiling - 0.006, ceilZ + 0.10);
+plate.rotation.y = armAngle;
+bracketGroup.add(plate);
+
+// 4 Corner Bolts
+const boltGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.016, 24);
+for (let dx of [-0.045, 0.045]) {
+    for (let dz of [-0.06, 0.06]) {
+        const bolt = new THREE.Mesh(boltGeo, screwMat);
+        bolt.position.set(dx, -0.004, dz);
+        plate.add(bolt);
+    }
+}
+
+// 2. Base socket
+const socketGeo = new THREE.BoxGeometry(0.045, 0.05, 0.045);
+const socket = new THREE.Mesh(socketGeo, blackAlumMat);
+socket.position.set(0, -0.025, 0.02);
+plate.add(socket);
+
+// 3. Cantilever Arm
+const armLength = 0.22;
+const armGeo = new THREE.BoxGeometry(0.032, 0.032, armLength);
+const arm = new THREE.Mesh(armGeo, blackAlumMat);
+arm.position.set(ceilX, yCeiling - 0.06, ceilZ + 0.03);
+arm.rotation.y = armAngle;
+arm.rotation.x = -0.15;
+bracketGroup.add(arm);
+
+// 4. End Hinge & Swivel Knuckle
+const knuckleGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.05, 32);
+const knuckle = new THREE.Mesh(knuckleGeo, blackAlumMat);
+knuckle.position.set(projX, projY + 0.10, projZ);
+bracketGroup.add(knuckle);
+
+// 5. Gimbal swivel joint & plate
+const jointGeo = new THREE.BoxGeometry(0.04, 0.035, 0.04);
+const joint = new THREE.Mesh(jointGeo, darkSteelMat);
+joint.position.set(projX, projY + 0.075, projZ);
+bracketGroup.add(joint);
+
+const projPlateGeo = new THREE.BoxGeometry(0.11, 0.008, 0.11);
+const projPlate = new THREE.Mesh(projPlateGeo, darkSteelMat);
+projPlate.position.set(projX, projY + 0.065, projZ);
+bracketGroup.add(projPlate);
+
+// 6. Power Cable
+const cableCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(ceilX + 0.02, projY + 0.08, ceilZ + 0.02),
+    new THREE.Vector3(ceilX + 0.03, yCeiling - 0.08, ceilZ + 0.08),
+    new THREE.Vector3(ceilX + 0.04, yCeiling - 0.01, ceilZ + 0.14),
+    new THREE.Vector3(ceilX + 0.04, yCeiling, ceilZ + 0.18)
+]);
+const cableGeo = new THREE.TubeGeometry(cableCurve, 32, 0.0035, 12, false);
+const cableMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 0.5 });
+const cable = new THREE.Mesh(cableGeo, cableMat);
+bracketGroup.add(cable);
+
+scene.add(bracketGroup);
+
+// Ceiling Contact Shadow
+const shadowCanvas = document.createElement('canvas');
+shadowCanvas.width = 256;
+shadowCanvas.height = 256;
+const sctx = shadowCanvas.getContext('2d');
+const sgrad = sctx.createRadialGradient(128, 128, 25, 128, 128, 120);
+sgrad.addColorStop(0, 'rgba(0,0,0,0.50)');
+sgrad.addColorStop(0.5, 'rgba(0,0,0,0.18)');
+sgrad.addColorStop(1, 'rgba(0,0,0,0)');
+sctx.fillStyle = sgrad;
+sctx.fillRect(0, 0, 256, 256);
+
+const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+const shadowGeo = new THREE.PlaneGeometry(0.42, 0.42);
+const shadowMat = new THREE.MeshBasicMaterial({
+    map: shadowTex,
+    transparent: true,
+    depthWrite: false
+});
+const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
+shadowPlane.rotation.x = Math.PI / 2;
+shadowPlane.position.set(ceilX, yCeiling - 0.001, ceilZ + 0.10);
+scene.add(shadowPlane);
+
+// Load K9.glb
+const loader = new GLTFLoader();
+loader.load('K9.glb', (gltf) => {
+    const model = gltf.scene;
+
+    // Enhance materials for deep black finish across the entire unit
+    model.traverse((child) => {
+        if (child.isMesh && child.material) {
+            const mat = child.material;
+            const name = child.name || '';
+            const matName = mat.name || '';
+
+            if (matName.includes('coated lens') || name.includes('optical')) {
+                // Keep the multi-coated lens texture pristine and clear
+                mat.roughness = 0.02;
+                mat.metalness = 0.08;
+            } else if (matName.includes('Power') || matName.includes('turquoise')) {
+                // Keep glowing LED
+            } else if (name.includes('outer rim highlight') || name.includes('recessed bevel')) {
+                // Subtle dark graphite edge bevel
+                mat.color.setHex(0x28282c);
+                mat.roughness = 0.3;
+                mat.metalness = 0.5;
+            } else {
+                // Uniform deep matte black chassis, housing, and side grilles
+                mat.color.setHex(0x0e0e10);
+                mat.roughness = 0.55;
+                mat.metalness = 0.1;
+            }
+        }
+    });
+
+    // Aim lens (+Z) towards screen
+    const aimDir = new THREE.Vector3(screenX - projX, screenY - projY, screenZ - projZ).normalize();
+    const forward = new THREE.Vector3(0, 0, 1);
+    const quat = new THREE.Quaternion().setFromUnitVectors(forward, aimDir);
+    
+    model.quaternion.copy(quat);
+    model.position.set(projX, projY, projZ);
+    
+    scene.add(model);
+    
+    renderer.render(scene, camera);
+    window.__RENDER_DONE__ = true;
+    console.log('Deep Black K9 Rendering completed!');
+}, undefined, (err) => {
+    console.error('Error loading K9.glb:', err);
+});
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+renderer.setSize(width, height);
+renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+window.getCameraParams = function() {
+    camera.updateMatrixWorld();
+    return {
+        fov: camera.fov,
+        aspect: camera.aspect,
+        matrixWorld: camera.matrixWorld.toArray(),
+        projectionMatrix: camera.projectionMatrix.toArray(),
+        position: camera.position.toArray()
+    };
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Build / Testing Screenshots
+shot_*.png
+test_*.jpg
+beam_test_*.jpg
+correct_*.jpg
+sim_*.jpg
+actual_side_beam.jpg
+glsl_proj_view.jpg
+screen_defect_inspect.jpg
+chrome_initial.png
+screenshot_*.png
+
+# Python / Environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite
+history_temp.db
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
